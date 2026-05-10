@@ -55,6 +55,9 @@ Normally, networks are judged solely by throughput. However, a high-throughput n
 ---
 
 ## 📊 Expected Output
+
+![Terminal Output Screenshot](Output.png)
+
 ```text
 Initializing Optimized Intelligent Network Topology Performance Analyzer...
 
@@ -80,5 +83,3 @@ Hybrid Topology       -2724.21       9.68 Mbps         733.04 ms      41.76 %   
 Reasoning: It achieved the highest computed score (160.76) using the weighted formula.
 This means it successfully balanced high throughput (16.61 Mbps) with minimal delay (2.84 ms) and packet loss (0.05%).
 ```
-
----
