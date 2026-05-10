@@ -1,0 +1,51 @@
+Intelligent Network Topology Analyzer - System Architecture
+===========================================================
+
+This document outlines the software architecture, modular components, and physical design of the ns-3 network simulation.
+
+1. Core Framework Architecture
+------------------------------
+The simulation relies on the discrete-event scheduling engine of ns-3 (C++). It operates on a modular architecture, meaning different network layers are handled by specialized helper classes.
+
+Modules Used:
+- `ns3::core`: Event scheduling and simulation time management.
+- `ns3::network`: Abstract representation of Nodes, Packets, and NetDevices (NICs).
+- `ns3::internet`: The TCP/UDP/IPv4 protocol stack implementations.
+- `ns3::point-to-point` & `ns3::csma`: The physical MAC layers and wired cables.
+- `ns3::applications`: The UdpClient and PacketSink application tools.
+- `ns3::flow-monitor`: The statistical traffic analysis and packet tracking engine.
+- `ns3::netanim` & `ns3::mobility`: The spatial positioning and GUI animation generators.
+
+2. Network Topology Designs
+---------------------------
+The simulation physically constructs 5 distinct architectural layouts:
+
+A. Point-to-Point (Daisy Chain)
+   - Layout: Nodes 0-4 connected linearly in a row.
+   - Links: Dedicated 10Mbps Point-to-Point links between adjacent nodes.
+   - Bottleneck: Any traffic traversing from Node 0 to Node 4 must hop through every intermediate router.
+
+B. Bus Topology
+   - Layout: Nodes 0-4 attached to a single shared backbone medium.
+   - Links: CSMA (Carrier Sense Multiple Access) shared 10Mbps channel.
+   - Bottleneck: Highly susceptible to collisions. All 5 nodes compete for the exact same 10Mbps of bandwidth pool.
+
+C. Star Topology
+   - Layout: Node 0 is the Hub. Nodes 1-4 are Spokes.
+   - Links: Point-to-Point links radiating outward from the central Hub.
+   - Bottleneck: The central Hub becomes a single point of failure and experiences extreme queue congestion when multiple Spokes send data simultaneously.
+
+D. Mesh Topology
+   - Layout: Nodes 0-4 positioned in a pentagon/square formation.
+   - Links: Full Point-to-Point wiring. Every single node has a direct, dedicated wire to every other node.
+   - Advantage: Client 1 and Client 2 can send data to the Server using completely separate, dedicated 10Mbps wires, bypassing network congestion entirely.
+
+E. Hybrid Topology
+   - Layout: A CSMA Bus network connecting to a Gateway Router, which then splits into a Point-to-Point star.
+   - Links: Combines shared Bus bandwidth with dedicated P2P links.
+   - Bottleneck: The Gateway Router suffers heavy queue backups because it must translate and buffer packets flowing from the busy Bus network into the external P2P network.
+
+3. Traffic Injection Architecture
+---------------------------------
+- Application Layer: UDP (User Datagram Protocol) is intentionally chosen over TCP. Because UDP lacks congestion control mechanisms (like sliding windows), it blindly blasts packets, ensuring that the physical bottleneck limits of the network are thoroughly tested without the application automatically throttling itself down.
+- Packet Sink: Acts as the receiving server bucket, absorbing incoming UDP streams and acknowledging receipt back to the passive FlowMonitor.

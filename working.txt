@@ -1,0 +1,41 @@
+Intelligent Network Topology Analyzer - Working & Execution Flow
+================================================================
+
+This document explains the step-by-step internal working of the C++ simulation when executed in ns-3.
+
+Phase 1: Global Initialization
+------------------------------
+1. The script loads global variables: a 5-second simulation limit, a 1ms packet interval, a 1024-byte packet size, and a limit of 5000 max packets per application.
+2. The "Quality of Service" weighting multipliers are loaded (Throughput=10, Delay=1, Packet Loss=50).
+
+Phase 2: Topology Generation & Wiring
+-------------------------------------
+1. The script sequentially executes five isolated functions: `runPointToPoint()`, `runBus()`, `runStar()`, `runMesh()`, and `runHybrid()`.
+2. Inside each function, ns-3 creates a specific number of logical Nodes (usually 5).
+3. The `MobilityHelper` module gives each Node an absolute X, Y, Z coordinate on a grid so they can be visually rendered later in NetAnim.
+4. The `InternetStackHelper` boots up a TCP/IPv4 networking stack on every Node.
+5. The cables are virtually plugged in using `PointToPointHelper` or `CsmaHelper` (for Bus), explicitly locked at a 10Mbps bandwidth speed to act as a choke point.
+6. `Ipv4AddressHelper` assigns IP addresses (e.g., 10.1.x.x) to every network interface card (NIC).
+7. `Ipv4GlobalRoutingHelper::PopulateRoutingTables()` computes the shortest path between all nodes automatically.
+
+Phase 3: Stress Testing (Traffic Injection)
+-------------------------------------------
+1. Node 4 (the Server) opens a UDP listening socket on Port 9 using `PacketSinkHelper`.
+2. At T=1.0s, Node 0 (Client 1) and Node 1 (Client 2) begin transmitting data.
+3. They use the `UdpClientHelper` to blast 1,000 packets per second (approx 8.19 Mbps per client).
+4. Because the combined data rate (~16.3 Mbps) exceeds the physical 10 Mbps cable limits, router queues fill up and packets begin to aggressively drop.
+
+Phase 4: Passive Monitoring
+---------------------------
+1. Throughout the simulation, the `FlowMonitor` module acts as an invisible probe attached to the IPv4 layer.
+2. It tags every transmitted packet with an ID and logs exactly when it arrives at the destination, accurately measuring the exact nanosecond delay.
+3. If a packet leaves the sender but never reaches the receiver, FlowMonitor tallies it as "Lost".
+
+Phase 5: The Intelligent Decision Engine
+----------------------------------------
+1. At T=5.0s, the traffic stops. The script extracts the total transmitted bytes, received bytes, and delayed times from the FlowMonitor.
+2. It calculates the raw Mbps throughput, average millisecond delay, and drop percentage.
+3. It passes these values into the mathematical algorithm:
+   Score = (Throughput * 10.0) - (Delay * 1.0) - (Packet Loss * 50.0)
+4. The topology with the highest numerical score is selected as the most stable and performant network design.
+5. A detailed report is printed to the terminal, and all statistics are exported securely to `results.txt`.
